@@ -49,8 +49,6 @@ import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
 import com.theveloper.pixelplay.presentation.theme.surfaceContainerHighColor
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import kotlinx.coroutines.delay
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun VolumeScreen(
@@ -148,16 +146,14 @@ private fun CurvedVolumeIndicator(
             x = (size.width - diameter) / 2f,
             y = (size.height - diameter) / 2f,
         )
-        val startAngle = 228f
-        val sweepAngle = -96f
-        val centerX = topLeft.x + (diameter / 2f)
-        val centerY = topLeft.y + (diameter / 2f)
-        val radius = diameter / 2f
+        val bottomAngle = 132f
+        val topAngle = 228f
+        val totalSweep = topAngle - bottomAngle
 
         drawArc(
             color = trackColor,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
+            startAngle = bottomAngle,
+            sweepAngle = totalSweep,
             useCenter = false,
             topLeft = topLeft,
             size = arcSize,
@@ -165,26 +161,13 @@ private fun CurvedVolumeIndicator(
         )
         drawArc(
             color = progressColor,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle * animatedProgress,
+            startAngle = bottomAngle,
+            sweepAngle = totalSweep * animatedProgress,
             useCenter = false,
             topLeft = topLeft,
             size = arcSize,
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
         )
-
-//        if (animatedProgress > 0.01f) {
-//            val knobAngleRad = Math.toRadians((startAngle + (sweepAngle * animatedProgress)).toDouble())
-//            val knobCenter = Offset(
-//                x = centerX + (radius * cos(knobAngleRad).toFloat()),
-//                y = centerY + (radius * sin(knobAngleRad).toFloat()),
-//            )
-//            drawCircle(
-//                color = progressColor,
-//                radius = strokeWidth * 0.86f,
-//                center = knobCenter,
-//            )
-//        }
     }
 }
 
@@ -220,16 +203,17 @@ private fun VolumeValuePill(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.Start) {
-            Text(
-                text = "$percent%",
-                color = palette.controlContent,
-                style = MaterialTheme.typography.title3,
-                fontWeight = FontWeight.SemiBold,
-            )
+//            Text(
+//                text = "$percent%",
+//                color = palette.controlContent,
+//                style = MaterialTheme.typography.title3,
+//                fontWeight = FontWeight.SemiBold,
+//            )
             Text(
                 text = deviceName,
-                color = palette.controlContent.copy(alpha = 0.74f),
-                fontSize = 11.sp,
+                color = palette.controlContent,
+                style = MaterialTheme.typography.title3,
+                //fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
