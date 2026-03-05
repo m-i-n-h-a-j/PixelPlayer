@@ -27,9 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +83,9 @@ fun LibrarySongsTab(
     val coroutineScope = rememberCoroutineScope()
     val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
     val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
+    var lastHandledSongSortKey by remember { mutableStateOf(sortOption.storageKey) }
+    var pendingSongSortScrollReset by remember { mutableStateOf(false) }
+    var songSortSawRefreshLoading by remember { mutableStateOf(false) }
     
     val currentSongId = stablePlayerState.currentSong?.id
 
@@ -127,9 +132,25 @@ fun LibrarySongsTab(
         registerActionCallback(locateCurrentSongAction)
     }
 
-    // Scroll to top when sort option changes
     LaunchedEffect(sortOption) {
+        val currentSortKey = sortOption.storageKey
+        if (currentSortKey == lastHandledSongSortKey) return@LaunchedEffect
+        lastHandledSongSortKey = currentSortKey
+        pendingSongSortScrollReset = true
+        songSortSawRefreshLoading = false
         listState.scrollToItem(0)
+    }
+
+    // Apply a second reset after paging finishes refresh, to avoid key-anchor jumps.
+    LaunchedEffect(songs.loadState.refresh, pendingSongSortScrollReset) {
+        if (!pendingSongSortScrollReset) return@LaunchedEffect
+        if (songs.loadState.refresh is LoadState.Loading) {
+            songSortSawRefreshLoading = true
+            return@LaunchedEffect
+        }
+        if (!songSortSawRefreshLoading) return@LaunchedEffect
+        listState.scrollToItem(0)
+        pendingSongSortScrollReset = false
     }
     
     // Visibility Logic:

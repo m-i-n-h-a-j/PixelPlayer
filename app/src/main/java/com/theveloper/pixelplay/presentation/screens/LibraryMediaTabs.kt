@@ -89,13 +89,17 @@ fun LibraryAlbumsTab(
 
     LaunchedEffect(playerUiState.currentAlbumSortOption) {
         val currentSortKey = playerUiState.currentAlbumSortOption.storageKey
-        if (currentSortKey != lastHandledAlbumSortKey) {
-            lastHandledAlbumSortKey = currentSortKey
-            pendingAlbumSortScrollReset = true
+        if (currentSortKey == lastHandledAlbumSortKey) return@LaunchedEffect
+        lastHandledAlbumSortKey = currentSortKey
+        pendingAlbumSortScrollReset = true
+        if (isListView) {
+            listState.scrollToItem(0)
+        } else {
+            gridState.scrollToItem(0)
         }
     }
 
-    LaunchedEffect(albums, isListView) {
+    LaunchedEffect(albums, isListView, pendingAlbumSortScrollReset) {
         if (!pendingAlbumSortScrollReset) return@LaunchedEffect
         if (isListView) {
             listState.scrollToItem(0)
@@ -384,9 +388,10 @@ fun LibraryArtistsTab(
         if (currentSortKey == lastHandledArtistSortKey) return@LaunchedEffect
         lastHandledArtistSortKey = currentSortKey
         pendingArtistSortScrollReset = true
+        listState.scrollToItem(0)
     }
 
-    LaunchedEffect(artists) {
+    LaunchedEffect(artists, pendingArtistSortScrollReset) {
         if (!pendingArtistSortScrollReset) return@LaunchedEffect
         listState.scrollToItem(0)
         pendingArtistSortScrollReset = false
@@ -501,6 +506,7 @@ fun LibraryPlaylistsTab(
     PlaylistContainer(
         playlistUiState = playlistUiState,
         filteredPlaylists = filteredPlaylists,
+        currentSortOption = playlistUiState.currentPlaylistSortOption,
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         bottomBarHeight = bottomBarHeight,

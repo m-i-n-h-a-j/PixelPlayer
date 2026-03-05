@@ -1420,6 +1420,7 @@ fun LibraryScreen(
                                             onSongLongPress = onSongLongPress,
                                             onSongSelectionToggle = onSongSelectionToggle,
                                             getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
+                                            sortOption = playerUiState.currentFavoriteSortOption,
                                             onLocateCurrentSongVisibilityChanged = { likedShowLocateButton = it },
                                             onRegisterLocateCurrentSongAction = { likedLocateAction = it },
                                             storageFilter = playerUiState.currentStorageFilter
@@ -2517,6 +2518,8 @@ fun LibraryFoldersTab(
         val coroutineScope = rememberCoroutineScope()
         val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
         val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
+        var lastHandledFolderSortKey by remember { mutableStateOf(currentSortOption.storageKey) }
+        var pendingFolderSortScrollReset by remember { mutableStateOf(false) }
 
         val flattenedFolders = remember(folders, currentSortOption) {
             sortMusicFoldersByOption(flattenFolders(folders), currentSortOption)
@@ -2557,6 +2560,20 @@ fun LibraryFoldersTab(
 
         LaunchedEffect(locateCurrentSongAction) {
             registerActionCallback(locateCurrentSongAction)
+        }
+
+        LaunchedEffect(currentSortOption) {
+            val currentSortKey = currentSortOption.storageKey
+            if (currentSortKey == lastHandledFolderSortKey) return@LaunchedEffect
+            lastHandledFolderSortKey = currentSortKey
+            pendingFolderSortScrollReset = true
+            listState.scrollToItem(0)
+        }
+
+        LaunchedEffect(itemsToShow, songsToShow, pendingFolderSortScrollReset) {
+            if (!pendingFolderSortScrollReset) return@LaunchedEffect
+            listState.scrollToItem(0)
+            pendingFolderSortScrollReset = false
         }
 
         LaunchedEffect(currentSongListIndex, itemsToShow, songsToShow, listState) {

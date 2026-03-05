@@ -31,9 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +54,7 @@ import androidx.paging.compose.itemContentType
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
@@ -75,6 +78,7 @@ fun LibraryFavoritesTab(
     onSongLongPress: (Song) -> Unit = {},
     onSongSelectionToggle: (Song) -> Unit = {},
     getSelectionIndex: (String) -> Int? = { null },
+    sortOption: SortOption,
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
     onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
     storageFilter: StorageFilter = StorageFilter.ALL
@@ -84,6 +88,9 @@ fun LibraryFavoritesTab(
     val coroutineScope = rememberCoroutineScope()
     val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
     val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
+    var lastHandledFavoriteSortKey by remember { mutableStateOf(sortOption.storageKey) }
+    var pendingFavoriteSortScrollReset by remember { mutableStateOf(false) }
+    var favoriteSortSawRefreshLoading by remember { mutableStateOf(false) }
     val currentSongId = stablePlayerState.currentSong?.id
 
     val currentSongListIndex = remember(favoriteSongs.itemCount, currentSongId) {
@@ -107,6 +114,26 @@ fun LibraryFavoritesTab(
 
     LaunchedEffect(locateCurrentSongAction) {
         registerActionCallback(locateCurrentSongAction)
+    }
+
+    LaunchedEffect(sortOption) {
+        val currentSortKey = sortOption.storageKey
+        if (currentSortKey == lastHandledFavoriteSortKey) return@LaunchedEffect
+        lastHandledFavoriteSortKey = currentSortKey
+        pendingFavoriteSortScrollReset = true
+        favoriteSortSawRefreshLoading = false
+        listState.scrollToItem(0)
+    }
+
+    LaunchedEffect(favoriteSongs.loadState.refresh, pendingFavoriteSortScrollReset) {
+        if (!pendingFavoriteSortScrollReset) return@LaunchedEffect
+        if (favoriteSongs.loadState.refresh is LoadState.Loading) {
+            favoriteSortSawRefreshLoading = true
+            return@LaunchedEffect
+        }
+        if (!favoriteSortSawRefreshLoading) return@LaunchedEffect
+        listState.scrollToItem(0)
+        pendingFavoriteSortScrollReset = false
     }
 
     LaunchedEffect(currentSongListIndex, favoriteSongs.itemCount, listState) {

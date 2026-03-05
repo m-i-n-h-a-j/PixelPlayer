@@ -18,6 +18,9 @@ class FolderNavigationStateHolder @Inject constructor() {
         updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit)
     ) {
         updateUiState { currentState ->
+            if (currentState.isFoldersPlaylistView == isPlaylistView) {
+                return@updateUiState currentState
+            }
             currentState.copy(
                 isFoldersPlaylistView = isPlaylistView,
                 currentFolderPath = null,
